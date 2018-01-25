@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import DefaultSlide from './DefaultSlide';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('screen').width - 100;
+const { height } = Dimensions.get('window').height;
 
 const isIphoneX = (
   Platform.OS === 'ios' &&
@@ -45,12 +46,12 @@ export default class AppIntroSlider extends React.Component {
   }
 
   _renderItem = (item) => {
-    const { width, height } = this.state;
+    const { widthView, height } = this.state;
     const bottomSpacer = (this.props.bottomButton ? (this.props.showSkipButton ? 44 : 0) + 44 : 0) + (isIphoneX ? 34: 0) + 64;
     const topSpacer = (isIphoneX ? 44 : 0) + (Platform.OS === 'ios' ? 20 : StatusBar.currentHeight);
     const props = { ...item.item, bottomSpacer, topSpacer };
     return (
-      <View style={{ height, width }}>
+      <View style={{ flex: 1, alignItems: 'center', width: widthView, paddingVertical: 10 }}>
         {this.props.renderItem ? this.props.renderItem(props) : (
           <DefaultSlide {...props}/>
         )}
@@ -92,17 +93,15 @@ export default class AppIntroSlider extends React.Component {
   }
 
   _renderPagination = () => {
-    // if (this.props.slides.length <= 1) return null;
-    const isLastSlide = this.state.activeIndex === (this.props.slides.length - 1 );
+    if (this.props.slides.length <= 1) return null;
 
-    const skipBtn = !isLastSlide && this.props.showSkipButton && this._renderSkipButton();
-    const btn = isLastSlide ? this._renderDoneButton() : this._renderNextButton();
-
+    const skipBtn = this.props.showSkipButton && this._renderSkipButton();
+    const btn = this.state.activeIndex == (this.props.slides.length - 1 ) ? this._renderDoneButton() : this._renderNextButton();
     return (
       <View style={styles.paginationContainer}>
         <View style={styles.paginationDots}>
           {!this.props.bottomButton && skipBtn}
-          {this.props.slides.length > 1 && this.props.slides.map((_, i) => (
+          {this.props.slides.map((_, i) => (
             <View
               key={i}
               style={[
@@ -125,36 +124,27 @@ export default class AppIntroSlider extends React.Component {
     // a variation close to - but not quite - the width.
     // That's why we round the number.
     // Also, Android phones and their weird numbers
-    const newIndex = Math.round(offset / this.state.width);
+    const newIndex = Math.round(offset / this.state.widthView);
     if (newIndex === this.state.activeIndex) {
       // No page change, don't do anything
       return;
     }
+
     const lastIndex = this.state.activeIndex;
     this.setState({ activeIndex: newIndex });
     this.props.onSlideChange && this.props.onSlideChange(newIndex, lastIndex);
   }
 
-  _getItemLayout = (data, index: number) => ({
-    length: this.state.width,
-    offset: this.state.width * index,
-    index,
-  })
-
-  _onLayout = () => {
-    const { width, height } = Dimensions.get('window');
-    if (width !== this.state.width || height !== this.state.height) {
-      // Set new width to update rendering of pages
-      this.setState({ width, height });
-      // Set new scroll position
-      const func = () => { this.flatList.scrollToOffset({ offset: this.state.activeIndex * width, animated: false }) }
-      Platform.OS === 'android' ? setTimeout(func, 0) : func();
-    }
+  _onLayout = event => {
+    this.setState({
+        widthView: event.nativeEvent.layout.width,
+        heightView: event.nativeEvent.layout.height
+    });
   }
 
   render() {
     return (
-      <View style={styles.flexOne}>
+      <View style={[styles.flexOne]} onLayout={(e) => this._onLayout(e)}>
         <FlatList
           ref={ref => this.flatList = ref}
           data={this.props.slides}
@@ -162,12 +152,9 @@ export default class AppIntroSlider extends React.Component {
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           bounces={false}
-          style={styles.flexOne}
+          style={{ flex: 1 }}
           renderItem={this._renderItem}
           onMomentumScrollEnd={this._onMomentumScrollEnd}
-          extraData={this.state.width}
-          onLayout={this._onLayout}
-          getItemLayout={this._getItemLayout}
         />
         {this._renderPagination()}
       </View>
