@@ -37,7 +37,7 @@ export default class AppIntroSlider extends React.Component {
 
   goToSlide = (pageNum) => {
     this.setState({ activeIndex: pageNum });
-    this.flatList.scrollToOffset({ offset: pageNum * this.state.width });
+    this.flatList.scrollToOffset({ offset: pageNum * this.state.widthView });
   }
 
   _onNextPress = () => {
